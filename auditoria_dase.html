@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de Datos | Supervisión DACE</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --verde-claro: #e8f5e9; --verde-medio: #81c784; --verde-oscuro: #2e7d32;
+            --amarillo: #fbc02d; --blanco: #ffffff; --rojo-alerta: #c62828;
+            --morado: #8e24aa; --naranja: #f57c00; --sombra: 0 8px 16px rgba(46, 125, 50, 0.15);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--verde-claro); color: var(--verde-oscuro); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        .sidebar { width: 250px; min-height: 100vh; background-color: var(--verde-oscuro); color: var(--blanco); padding: 20px; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; }
+        .sidebar h3 { color: var(--amarillo); margin-bottom: 30px; text-align: center; font-size: 1.2rem;}
+        .nav-btn { background: transparent; color: var(--blanco); text-align: left; border: none; padding: 15px; margin-bottom: 10px; border-radius: 8px; font-size: 15px; cursor: pointer; transition: 0.3s; }
+        .nav-btn:hover, .nav-btn.active { background-color: var(--verde-medio); color: var(--verde-oscuro); transform: translateX(5px); }
+        
+        .content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); display: flex; flex-direction: column; align-items: center; }
+        .header-title { font-size: 28px; margin-bottom: 20px; color: var(--verde-oscuro); text-transform: uppercase; font-weight: bold; width: 100%; max-width: 1000px; text-align: left; }
+        
+        .card { background: var(--blanco); padding: 30px; border-radius: 15px; box-shadow: var(--sombra); width: 100%; max-width: 1000px; margin-bottom: 25px; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        input[type="file"], input[type="text"] { width: 100%; padding: 10px; border: 2px solid var(--verde-medio); border-radius: 8px; }
+        input[type="file"] { background-color: #f9fbe7; cursor: pointer; border-style: dashed; }
+        
+        .btn-opcion { flex: 1; padding: 15px; color: var(--blanco); border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-opcion-a { background-color: #1976d2; } 
+        .btn-opcion-a:hover { background-color: #0d47a1; transform: translateY(-2px); }
+        .btn-opcion-b { background-color: var(--verde-oscuro); } 
+        .btn-opcion-b:hover { background-color: var(--amarillo); color: var(--verde-oscuro); transform: translateY(-2px); }
+        
+        .resultado-box { padding: 20px; border-radius: 10px; margin-bottom: 20px; background-color: #f5f5f5; border-left: 6px solid #ccc; }
+        .success { border-left-color: var(--verde-oscuro); background-color: #e8f5e9; }
+        .error { border-left-color: var(--rojo-alerta); background-color: #ffebee; }
+        h3.titulo-seccion { margin-bottom: 10px; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        ul { list-style-type: none; padding-left: 0; }
+        
+        li.reporte-detalle { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; background: white; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        .tag { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-left: 8px; }
+        .tag-rojo { background-color: #ffebee; color: var(--rojo-alerta); }
+        .tag-ok { background-color: #e8f5e9; color: var(--verde-oscuro); }
+        
+        #pantalla-carga { display: none; text-align: center; margin-top: 20px; color: var(--naranja); font-weight: bold; font-size: 16px; padding: 15px; background: #fff3e0; border-radius: 8px; border: 1px solid #ffcc80;}
+        .alerta-limite { background-color: #fffde7; padding: 10px; border-radius: 5px; font-size: 13px; color: #f57f17; font-weight: bold; text-align: center; margin-bottom: 10px;}
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h3>Supervisión 11 de Junio</h3>
+        <button class="nav-btn active">📞 Actualización de Datos</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'">⬅ Volver al Dashboard</button>
+    </div>
+
+    <div class="content">
+        <div class="header-title">Actualización de Datos (Supervisión DACE)</div>
+
+        <div class="card">
+            <h3 class="titulo-seccion">1. Carga de Bases de Datos</h3>
+            
+            <label>Listado de Socios (Requerido SÓLO para Opción A):</label>
+            <input type="file" id="file-matriz" accept=".xlsx, .xls">
+            <span id="estado-matriz" style="font-size: 12px; color: gray;">Esperando archivo...</span>
+            
+            <label>Base de Datos DACE (Requerido para ambas opciones):</label>
+            <input type="file" id="file-dace" accept=".xlsx, .xls">
+            <span id="estado-dace" style="font-size: 12px; color: gray;">Esperando archivo...</span>
+
+            <hr style="margin: 20px 0; border: 1px solid #eee;">
+            
+            <h3 class="titulo-seccion">2. Herramientas de Auditoría</h3>
+            <p style="font-size: 13px; color: gray; margin-bottom: 15px;">Selecciona el motor de revisión. Si dejas las cédulas en blanco, el sistema auditará todo el archivo automáticamente.</p>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="flex: 1;"><label>Cédula Inicial (Opcional):</label><input type="text" id="cedula-inicio" placeholder="Ej. 0705966869"></div>
+                <div style="flex: 1;"><label>Cédula Final (Opcional):</label><input type="text" id="cedula-fin" placeholder="Ej. 0755966879"></div>
+            </div>
+            
+            <div style="display: flex; gap: 15px;">
+                <button class="btn-opcion btn-opcion-a" onclick="prepararAuditoria('A')">🔍 OPCIÓN A: Auditar Secuencia (Saltos)</button>
+                <button class="btn-opcion btn-opcion-b" onclick="prepararAuditoria('B')">🕵️ OPCIÓN B: Auditar Calidad y Grabador</button>
+            </div>
+            
+            <div id="pantalla-carga">⏳ Procesando algoritmos Zoiper y reglas de calidad...</div>
+        </div>
+
+        <div class="card" id="panel-resultados" style="display: none;">
+            <h2 id="titulo-resultados" style="text-align: center; color: var(--verde-oscuro); margin-bottom: 20px;">Resultados</h2>
+            
+            <div class="resultado-box" id="caja-resultados">
+                <div id="limite-visual"></div>
+                <ul id="lista-resultados"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let matrizArray = [];
+        let daceJSON = [];
+
+        document.getElementById('file-matriz').addEventListener('change', function(e) {
+            document.getElementById('estado-matriz').innerText = "⏳ Leyendo Matriz gigante...";
+            setTimeout(() => {
+                leerExcelArray(e.target.files[0], data => {
+                    matrizArray = data;
+                    document.getElementById('estado-matriz').innerText = `✅ Matriz cargada.`;
+                    document.getElementById('estado-matriz').style.color = "green";
+                });
+            }, 100);
+        });
+
+        document.getElementById('file-dace').addEventListener('change', function(e) {
+            document.getElementById('estado-dace').innerText = "⏳ Leyendo DACE...";
+            setTimeout(() => {
+                leerExcelDaceEspecial(e.target.files[0], data => {
+                    daceJSON = data;
+                    document.getElementById('estado-dace').innerText = `✅ DACE cargado.`;
+                    document.getElementById('estado-dace').style.color = "green";
+                });
+            }, 100);
+        });
+
+        function leerExcelArray(file, callback) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                let sheetName = workbook.SheetNames.find(name => name.toUpperCase().includes("ACTIVA")) || workbook.SheetNames[0];
+                callback(XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header: 1, defval: ""}));
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function leerExcelDaceEspecial(file, callback) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1, defval: ""});
+                
+                let headerRowIndex = -1;
+                for (let i = 0; i < Math.min(rawData.length, 30); i++) { 
+                    if (rawData[i].some(cell => String(cell).toUpperCase().includes("CÉDULA") || String(cell).toUpperCase().includes("PASAPORTE"))) {
+                        headerRowIndex = i; break;
+                    }
+                }
+                if (headerRowIndex === -1) { callback([]); return; }
+
+                const headers = rawData[headerRowIndex];
+                const cleanData = [];
+                for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+                    let row = rawData[i];
+                    if (row.length === 0 || !row.some(c => c !== "")) continue;
+                    let rowObj = {};
+                    headers.forEach((head, idx) => { if(head) rowObj[String(head).trim()] = row[idx]; });
+                    cleanData.push(rowObj);
+                }
+                callback(cleanData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function limpiarNumero(num) {
+            let limpio = String(num || "").trim().replace(/[^0-9]/g, '');
+            if (limpio.length === 9) limpio = "0" + limpio;
+            return limpio;
+        }
+
+        function buscarValor(fila, palabra) {
+            for (let key in fila) { if (key.toUpperCase().includes(palabra)) return fila[key]; }
+            return "";
+        }
+
+        function limpiarAcentosMayusculas(texto) {
+            return String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+        }
+
+        // MOTOR MATEMÁTICO AVANZADO PARA ZOIPER
+        function telefonosCoinciden(numMarcadoRaw, telefonosPermitidosArr) {
+            if (!numMarcadoRaw) return false;
+            let numMarcado = limpiarNumero(numMarcadoRaw); 
+            
+            // Creamos todas las posibilidades de lo que el grabador quiso decir
+            let posiblesMarcados = [numMarcado]; 
+            
+            // 1. Zoiper Celular (7 o 8 inicial)
+            if ((numMarcado.startsWith("7") || numMarcado.startsWith("8")) && numMarcado.length > 9) {
+                posiblesMarcados.push(numMarcado.substring(1)); 
+            }
+            // 2. Zoiper Convencional (El 9 reemplaza al 07)
+            if (numMarcado.startsWith("9") && numMarcado.length === 8) {
+                posiblesMarcados.push("07" + numMarcado.substring(1)); 
+            }
+            // 3. Zoiper Convencional marcado con 7 (Ej. 7072937213)
+            if (numMarcado.startsWith("707") && numMarcado.length >= 9) {
+                posiblesMarcados.push(numMarcado.substring(1)); 
+            }
+
+            // Validar contra todos los teléfonos permitidos extraídos de la celda
+            for (let tPermitido of telefonosPermitidosArr) {
+                if (!tPermitido) continue;
+                let tLimpio = limpiarNumero(tPermitido); 
+                
+                for (let posible of posiblesMarcados) {
+                    if (posible === tLimpio || tLimpio.includes(posible) || posible.includes(tLimpio)) {
+                        return true; // Match encontrado
+                    }
+                }
+            }
+            return false;
+        }
+
+        function prepararAuditoria(opcion) {
+            if (opcion === 'A' && (matrizArray.length === 0 || daceJSON.length === 0)) { 
+                alert("Para la Opción A, necesitas subir AMBOS archivos."); return; 
+            }
+            if (opcion === 'B' && daceJSON.length === 0) {
+                alert("Para la Opción B, necesitas subir al menos el archivo DACE."); return;
+            }
+            
+            let iniDeseado = limpiarNumero(document.getElementById('cedula-inicio').value);
+            let finDeseado = limpiarNumero(document.getElementById('cedula-fin').value);
+            
+            document.getElementById('pantalla-carga').style.display = "block";
+            document.getElementById('panel-resultados').style.display = "none";
+            setTimeout(() => { ejecutarMotor(opcion, iniDeseado, finDeseado); }, 500);
+        }
+
+        function ejecutarMotor(opcion, iniDeseado, finDeseado) {
+            let htmlResultados = [];
+            let totalErrores = 0;
+            const MAX_ITEMS = 300; 
+
+            // ==========================================
+            // MOTOR A: AUDITORÍA DE SECUENCIA
+            // ==========================================
+            if (opcion === 'A') {
+                document.getElementById('titulo-resultados').innerText = "Resultados: Auditoría de Secuencia (Faltantes)";
+                
+                let matrizMap = new Map();
+                for (let i = 0; i < matrizArray.length; i++) {
+                    if (matrizArray[i].length > 0) {
+                        let cedula = limpiarNumero(matrizArray[i][0]);
+                        if (cedula && cedula.length >= 9) { matrizMap.set(cedula, { index: i, row: matrizArray[i] }); }
+                    }
+                }
+
+                let cedulasDaceSet = new Set();
+                let minDaceIdx = Infinity; let maxDaceIdx = -Infinity;
+
+                daceJSON.forEach(fila => {
+                    let canal = limpiarAcentosMayusculas(buscarValor(fila, "CANAL"));
+                    if (canal.includes("LLAMADA REALIZADA")) {
+                        let cedulaDace = limpiarNumero(buscarValor(fila, "CÉDULA") || buscarValor(fila, "PASAPORTE"));
+                        if (cedulaDace) {
+                            cedulasDaceSet.add(cedulaDace);
+                            if (matrizMap.has(cedulaDace)) {
+                                let idx = matrizMap.get(cedulaDace).index;
+                                if (idx < minDaceIdx) minDaceIdx = idx;
+                                if (idx > maxDaceIdx) maxDaceIdx = idx;
+                            }
+                        }
+                    }
+                });
+
+                let idxInicio = iniDeseado && matrizMap.has(iniDeseado) ? matrizMap.get(iniDeseado).index : minDaceIdx;
+                let idxFin = finDeseado && matrizMap.has(finDeseado) ? matrizMap.get(finDeseado).index : maxDaceIdx;
+
+                if (idxInicio === Infinity || idxFin === -Infinity || idxInicio === -1 || idxFin === -1) {
+                    document.getElementById('pantalla-carga').style.display = "none";
+                    alert("Error: No se pudo establecer el rango. Asegúrate de que las cédulas existan en la Matriz."); return;
+                }
+
+                if (idxInicio > idxFin) [idxInicio, idxFin] = [idxFin, idxInicio];
+                
+                const exclusiones = ["CUENTA CERRADA", "SOCIO FALLECIDO", "FALLECIDO", "CUENTA CERRADA - APORTE SOCIO ACTIVO"];
+
+                for (let i = idxInicio; i <= idxFin; i++) {
+                    let filaMatriz = matrizArray[i];
+                    if (!filaMatriz || filaMatriz.length === 0) continue;
+
+                    let cedulaMatriz = limpiarNumero(filaMatriz[0]); 
+                    let nombreMatriz = filaMatriz[1] || "Sin Nombre"; 
+                    let obsMatriz = limpiarAcentosMayusculas(filaMatriz[4] || ""); 
+                    let saltoValido = exclusiones.some(exc => obsMatriz.includes(exc));
+
+                    if (cedulaMatriz && cedulaMatriz.length >= 9 && !cedulasDaceSet.has(cedulaMatriz)) {
+                        if (!saltoValido) {
+                            totalErrores++;
+                            htmlResultados.push(`<li style="padding: 10px; border-bottom: 1px solid #ccc;"><span class="tag tag-rojo">#${totalErrores} | NO LLAMADO</span> <b>${nombreMatriz}</b> (CI: ${cedulaMatriz}). Omitido sin justificación.</li>`);
+                        }
+                    }
+                }
+
+                if (totalErrores === 0) {
+                    htmlResultados.push(`<li style="padding: 10px;"><span class="tag tag-ok">EXCELENTE</span> No se saltaron a ningún socio en el rango analizado.</li>`);
+                }
+            }
+
+            // ==========================================
+            // MOTOR B: AUDITORÍA DE CALIDAD Y GRABADOR
+            // ==========================================
+            if (opcion === 'B') {
+                document.getElementById('titulo-resultados').innerText = "Resultados: Calidad DACE y Grabador";
+                
+                const obsPermitidas = [
+                    "DATOS ACTUALIZADOS", "DIRECTO A BUZON", "SE DEJO MENSAJE CON EL FAMILIAR",
+                    "CUALQUIER MOMENTO SE ACERCA ACTUALIZAR", "FUERA DE SERVICIO", "SOLICITA CIERRE DE CUENTA",
+                    "NO CONTESTO", "DEVOLVER LLAMADA", "NO ESTA INTERESADO EN ACTUALIZAR DATOS",
+                    "NUMERO INCORRECTO", "VIA CORREO ELECTRONICO", "SOCIO FALLECIDO", "CUENTA CERRADA", "ABANDONO LLAMADA"
+                ];
+
+                daceJSON.forEach(filaDace => {
+                    let canal = limpiarAcentosMayusculas(buscarValor(filaDace, "CANAL"));
+                    if (!canal.includes("LLAMADA REALIZADA")) return;
+
+                    let cedulaDace = limpiarNumero(buscarValor(filaDace, "CÉDULA") || buscarValor(filaDace, "PASAPORTE"));
+                    let nombreDace = buscarValor(filaDace, "NOMBRE - NICK REDES") || buscarValor(filaDace, "NOMBRE") || "Sin Nombre DACE";
+                    
+                    // EXTRACTOR INTELIGENTE: Saca todos los números separados por guiones o espacios
+                    let telefonoDaceRaw = buscarValor(filaDace, "TELÉFONO");
+                    let permitidosArr = String(telefonoDaceRaw).match(/\d{7,}/g) || [];
+
+                    let grabadorOriginal = buscarValor(filaDace, "GRABADOR") || "SIN GRABADOR";
+                    let grabadorMayus = grabadorOriginal.toUpperCase();
+                    let tema = limpiarAcentosMayusculas(buscarValor(filaDace, "TEMA"));
+                    let nMensajes = String(buscarValor(filaDace, "NÚMERO DE MENSAJES") || "0");
+                    let producto = limpiarAcentosMayusculas(buscarValor(filaDace, "PRODUCTOS"));
+                    let motivo = limpiarAcentosMayusculas(buscarValor(filaDace, "MOTIVO"));
+                    let observacion = limpiarAcentosMayusculas(buscarValor(filaDace, "OBSERVACIÓN"));
+                    let usuario = buscarValor(filaDace, "USUARIO") || "Desconocido";
+
+                    let erroresDeSocio = [];
+
+                    // 1. Auditoría del Grabador con lógica Zoiper
+                    if (!grabadorMayus.includes("OUT")) {
+                        erroresDeSocio.push("Grabador no tiene OUT (Posible FORCE)");
+                    } else {
+                        let partes = grabadorMayus.split("-OUT-");
+                        if (partes.length > 1) {
+                            let numMarcado = partes[1].split("-")[0]; // Ej. 70997973084
+                            
+                            if (!telefonosCoinciden(numMarcado, permitidosArr)) {
+                                erroresDeSocio.push(`Teléfono Marcado (${limpiarNumero(numMarcado)}) no coincide con DACE`);
+                            }
+                        }
+                    }
+
+                    // 2. Auditoría Tipificación
+                    if (!tema.includes("INFORMACION")) erroresDeSocio.push(`Tema erróneo`);
+                    if (nMensajes !== "0") erroresDeSocio.push(`N° Mensajes erróneo`);
+                    if (!producto.includes("CUENTAS")) erroresDeSocio.push(`Producto erróneo`);
+                    if (!motivo.includes("ACTUALIZACION DE DATOS")) erroresDeSocio.push(`Motivo erróneo`);
+
+                    let obsCorrecta = obsPermitidas.includes(observacion) || observacion.startsWith("ACTUALIZA ");
+                    if (!obsCorrecta) erroresDeSocio.push(`Observación incorrecta ("${observacion}")`);
+
+                    // 3. Crear Tarjeta de Expediente Detallado
+                    if (erroresDeSocio.length > 0) {
+                        totalErrores++;
+                        htmlResultados.push(`
+                        <li class="reporte-detalle" style="border-left: 5px solid var(--rojo-alerta);">
+                            <div style="font-size: 13px; color: #444; margin-bottom: 8px; line-height: 1.6;">
+                                <b style="color:var(--rojo-alerta); font-size: 15px;">#${totalErrores}</b> | <b style="color:var(--verde-oscuro)">C.I:</b> ${cedulaDace} <br>
+                                <b style="color:var(--verde-oscuro)">SOCIO:</b> ${nombreDace}<br>
+                                <b style="color:var(--verde-oscuro)">TELÉFONO(S) DACE:</b> ${telefonoDaceRaw} <br>
+                                <b style="color:var(--verde-oscuro)">GRABADOR:</b> <span style="word-break: break-all; color:#1976d2;">${grabadorOriginal}</span><br>
+                                <b style="color:var(--verde-oscuro)">USUARIO:</b> ${usuario}
+                            </div>
+                            <div style="background-color: #ffebee; padding: 8px; border-radius: 5px; color: var(--rojo-alerta); font-size: 13px; font-weight: bold;">
+                                ⚠️ Errores detectados: ${erroresDeSocio.join(' | ')}
+                            </div>
+                        </li>`);
+                    }
+                });
+
+                if (totalErrores === 0) {
+                    htmlResultados.push(`<li style="padding: 10px;"><span class="tag tag-ok">EXCELENTE</span> Todas las llamadas analizadas tienen Grabador y Tipificación perfectos.</li>`);
+                }
+            }
+
+            document.getElementById('lista-resultados').innerHTML = htmlResultados.slice(0, MAX_ITEMS).join('');
+            document.getElementById('limite-visual').innerHTML = totalErrores > MAX_ITEMS ? `<div class="alerta-limite">Se encontraron ${totalErrores} errores en total. Mostrando los primeros ${MAX_ITEMS}.</div>` : "";
+            document.getElementById('caja-resultados').className = totalErrores === 0 ? "resultado-box success" : "resultado-box error";
+
+            document.getElementById('pantalla-carga').style.display = "none";
+            document.getElementById('panel-resultados').style.display = "block";
+        }
+    </script>
+</body>
+</html>
