@@ -131,7 +131,7 @@
                             <select id="tarea-operadora">
                                 <option value="Valeria">Valeria</option>
                                 <option value="Maria E.">Maria E.</option>
-                                <option value="Adriana">Adriana</option>
+                                <option value="Turno">Turno</option>
                                 <option value="Paula">Paula</option>
                                 <option value="Fernanda">Fernanda</option>
                                 <option value="Evelin">Evelin</option>
@@ -299,7 +299,7 @@
             const tablero = document.getElementById('tablero-tareas');
             tablero.innerHTML = ''; 
 
-            const operadorasEquipo = ["Valeria", "Maria E.", "Adriana", "Paula", "Fernanda", "Evelin"];
+            const operadorasEquipo = ["Valeria", "Maria E.", "Turno", "Paula", "Fernanda", "Evelin"];
 
             operadorasEquipo.forEach(op => {
                 const tareasOp = tareas.filter(t => t.operadora === op);
